@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Flujo y Extracción de Partículas 3D</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --accent-blue: #2980b9;
+            --accent-green: #27ae60;
+            --accent-dark: #1a252f;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Encabezado Profesional */
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--accent-dark), #2c3e50);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 24pt;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        header p.subtitle {
+            font-size: 13pt;
+            color: #bdc3c7;
+            margin-bottom: 15px;
+        }
+
+        .meta-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 10pt;
+            color: #ecf0f1;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            background: rgba(255,255,255,0.1);
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        /* Tarjetas de Contenido */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            font-size: 16pt;
+            color: var(--accent-dark);
+            margin-bottom: 20px;
+            border-left: 5px solid var(--accent-blue);
+            padding-left: 12px;
+        }
+
+        /* Sección de Video/Animación */
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            aspect-ratio: 16 / 9;
+        }
+
+        .video-container video, .video-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .video-caption {
+            font-size: 9.5pt;
+            color: var(--text-muted);
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Tabla de Resultados */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 11pt;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--accent-dark);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #fdfdfd;
+        }
+
+        /* Zona de Descargas / Código */
+        .download-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .file-info h3 {
+            font-size: 12pt;
+            color: var(--accent-dark);
+            margin-bottom: 4px;
+        }
+
+        .file-info p {
+            font-size: 9.5pt;
+            color: var(--text-muted);
+        }
+
+        .btn-download {
+            display: inline-block;
+            background-color: var(--accent-green);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 10.5pt;
+            transition: background 0.2s ease;
+        }
+
+        .btn-download:hover {
+            background-color: #219653;
+        }
+
+        /* Vista de Código Limpia */
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: "Fira Code", Consolas, Monaco, monospace;
+            font-size: 9.5pt;
+            max-height: 400px;
+            border: 1px solid #334155;
+        }
+
+        /* Pie de Página */
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: var(--text-muted);
+            font-size: 9pt;
+            border-top: 1px solid var(--border-color);
+            margin-top: 5px;
+        }
+
+        /* Responsive simple */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            header h1 { font-size: 18pt; }
+            .meta-info { flex-direction: column; gap: 8px; align-items: center; }
+            .download-box { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- Encabezado del Proyecto -->
+        <header>
+            <h1>Simulador 3D de los Flujos de Aire</h1>
+            <p class="subtitle">Análisis dinámico de partículas y optimización de flujos de ventilación</p>
+        </header>
+
+        <!-- Sección 1: Demostración en Video -->
+        <section class="card">
+            <h2>Demostración de la Simulación en Tiempo Real</h2>
+            <div class="video-container">
+                <!-- Puedes usar una etiqueta <video> si grabaste un archivo .mp4 -->
+                <section class="card">
+                    <h2>Demostración de la Simulación en Tiempo Real</h2>
+                    <div class="video-container">
+                        <img src="assets/simulacion.gif" alt="Animación del simulador de partículas 3D">
+                    </div>
+                    <p class="video-caption">Vista interactiva de la dispersión de humo (gris), polvo (café) y la interacción aerodinámica con obstáculos físicos.</p>
+                </section>
+                
+                <!-- O si prefieres un GIF animado, descomenta la línea de abajo y borra la de <video> -->
+                <!-- <img src="assets/simulacion.gif" alt="Animación del simulador de partículas"> -->
+            </div>
+            <p class="video-caption">Vista interactiva de la dispersión de humo (gris), polvo (café) y la interacción aerodinámica con obstáculos físicos.</p>
+        </section>
+
+        <!-- Sección 2: Resumen del Experimento -->
+        <section class="card">
+            <h2>Resumen de Métricas Obtenidas</h2>
+            <p>El simulador integra el Método de Euler y modelos estocásticos para calcular la eficiencia de remoción de partículas en un espacio controlado de 10x10x10 metros:</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Escenario de Prueba</th>
+                        <th>Tiempo de Simulación</th>
+                        <th>Tasa de Extracción</th>
+                        <th>Eficiencia Final</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <strong><td>Caso 1: Cuarto Vacío (Sin Muro)</td></strong>
+                        <td>4.00 s</td>
+                        <td>112.5 part/s</td>
+                        <td style="color: var(--accent-green); font-weight: bold;">92.4%</td>
+                    </tr>
+                    <tr>
+                        <strong><td>Caso 2: Con Muro Deflector Central</td></strong>
+                        <td>4.00 s</td>
+                        <td>68.2 part/s</td>
+                        <td style="color: #e67e22; font-weight: bold;">55.7%</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="font-size: 10pt; color: var(--text-muted);">*Nota: Los datos demuestran cómo la geometría del espacio puede reducir drásticamente la tasa de captura del aire contaminado.</p>
+        </section>
+
+        <!-- Sección 3: Descarga y Repositorio -->
+        <section class="card">
+            <h2>Código Fuente y Archivos del Proyecto</h2>
+            <p style="margin-bottom: 20px;">Todo el código fue desarrollado en Python utilizando librerías científicas estándar como NumPy para el cálculo de matrices vectoriales y Matplotlib para el renderizado tridimensional.</p>
+            
+            <div class="download-box">
+                <div class="file-info">
+                    <h3>script_simulacion.py</h3>
+                    <p>Script principal que contiene el motor de física, el algoritmo de colisiones y la animación.</p>
+                </div>
+                <a href="codigo/script_simulacion.py" download class="btn-download">Descargar Código .py</a>
+            </div>
+
+            <div class="download-box">
+                <div class="file-info">
+                    <h3>Hoja Técnica de Referencia (.pdf)</h3>
+                    <p>Documentación complementaria de velocidades de captación industrial.</p>
+                </div>
+                <a href="assets/Ventilacion_Puntual_VentDepot.pdf" download class="btn-download" style="background-color: var(--accent-blue);">Descargar PDF Técnico</a>
+            </div>
+        </section>
+
+        <!-- Sección 4: Vista Previa del Código -->
+        <section class="card">
+            <h2>Vista Previa del Motor Vectorial (Python)</h2>
+            <p style="margin-bottom: 15px;">Muestra de la lógica implementada para el desvío aerodinámico y el cálculo de fuerzas de arrastre:</p>
+            <pre>
+# --- SEGMENTO DEL CAMPO VECTORIAL Y ABSORCIÓN DE COLISIONES ---
+def campoVectorialFuncion(x, y, z):
+    singularidad_evitar = 0.3
+    dx_vent, dy_vent, dz_vent = xS - x, yS - y, zS - z
+    dist_vent2 = dx_vent**2 + dy_vent**2 + dz_vent**2 + singularidad_evitar
+    magnitud_pull = fuerza_ext / dist_vent2
+    
+    p = magnitud_pull * (dx_vent / np.sqrt(dist_vent2))
+    q = magnitud_pull * (dy_vent / np.sqrt(dist_vent2))
+    r = magnitud_pull * (dz_vent / np.sqrt(dist_vent2))
+    
+    # Restricción por hitboxes de obstáculos
+    for (xMin, xMax, yMin, yMax, zMin, zMax) in obstaculos:
+        cx = np.clip(x, xMin, xMax)
+        cy = np.clip(y, yMin, yMax)
+        cz = np.clip(z, zMin, zMax)
+        # (Lógica de rebote y amortiguamiento continuo...)
+            </pre>
+        </section>
+
+        <!-- Pie de página -->
+        <footer>
+            <p>© 2026 - Proyecto de Simulación Física Computacional</p>
+            <p>Generado especialmente para visualización mediante código QR en Cartel Científico</p>
+        </footer>
+
+    </div>
+
+</body>
+</html>
