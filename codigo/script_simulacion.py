@@ -3,28 +3,17 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import time
 
-# ==============================================================================
-# MOTOR DE FÍSICA Y OPTIMIZACIÓN
-# ==============================================================================
-
 def crear_campo_vectorial(config):
-    """
-    Crea un motor de física de fluidos real basado en gradientes de potencial.
-    Calcula velocidad de succión del sumidero y REPULSIÓN de obstáculos.
-    Obliga a las partículas a 'rodear' barreras estructurales.
-    """
     xF, yF, zF = config['fuente']
     xS, yS, zS = config['sumidero']
     fuerza_ext = config['fisica']['fuerza_extractor']
     vel_max = config['fisica']['v_max']
-    epsilon_motor = config['fisica'].get('softening_motor', 10**-5)
     
     obstaculos = config.get('obstaculos', [])
 
     def motor_física(x, y, z):
         singularidad_evitar = 0.3 
         
-        # --- A. CÁLCULO DE LA SUCCIÓN DEL SUMIDERO ---
         dx_vent = xS - x
         dy_vent = yS - y
         dz_vent = zS - z
@@ -36,7 +25,6 @@ def crear_campo_vectorial(config):
         q_vent = magnitud_pull * (dy_vent / np.sqrt(dist_vent2))
         r_vent = magnitud_pull * (dz_vent / np.sqrt(dist_vent2))
         
-        # --- B. CÁLCULO DE LA REPULSIÓN DE OBSTÁCULOS ---
         p_obs = np.zeros_like(x) if isinstance(x, np.ndarray) else 0.0
         q_obs = np.zeros_like(y) if isinstance(y, np.ndarray) else 0.0
         r_obs = np.zeros_like(z) if isinstance(z, np.ndarray) else 0.0
@@ -64,7 +52,6 @@ def crear_campo_vectorial(config):
                 elif axis_idx == 4: r_obs[indices] += fuerzaRepulsion_motor[indices] 
                 elif axis_idx == 5: r_obs[indices] -= fuerzaRepulsion_motor[indices] 
 
-        # --- C. SUMA TOTAL DE FUERZAS Y CLIPPING ---
         p_Final = p_vent + p_obs
         q_Final = q_vent + q_obs
         r_Final = r_vent + r_obs
@@ -80,7 +67,6 @@ def crear_campo_vectorial(config):
     return motor_física
 
 def evaluar_eficiencia_volumetrica(config):
-    """Métrica de Éxito Volumétrica: Evalúa toda la habitación."""
     campo_func = crear_campo_vectorial(config)
     
     resolucion_control = 0.8 
@@ -104,7 +90,6 @@ def evaluar_eficiencia_volumetrica(config):
     return np.mean(eficiencia_flujo_util)
 
 def optimizar_sumidero_realista(config_base, resolucion=0.5):
-    """Busca la mejor posición del extractor (Sumidero)."""
     print(f"\n--- INICIANDO OPTIMIZACIÓN VOLUMÉTRICA INDUSTRIAL: {config_base['title'].upper()} ---")
     print(f"Mesa de trabajo (Fuente): {config_base['fuente']}")
     inicio_tiempo = time.time()
@@ -169,16 +154,12 @@ def optimizar_sumidero_realista(config_base, resolucion=0.5):
     
     print("\n================ RESULTADOS DE LA OPTIMIZACIÓN ================")
     print(f"Tiempo de cómputo: {fin_tiempo - inicio_tiempo:.2f} segundos")
-    print(f"Posiciones reales evaluadas en perímetro y obstáculos: {total_iteraciones}")
+    print(f"Posiciones reales evaluadas: {total_iteraciones}")
     print(f"--> MEJOR UBICACIÓN ESTRUCTURAL (Sumidero): {mejor_posicion}")
     print(f"--> ARRASTRE VOLUMÉTRICO LOGRADO EN CUARTO : {mejor_alineacion_motor:.4f} m/s útiles")
     print("===============================================================\n")
     
     return mejor_posicion
-
-# ==============================================================================
-# INTERFAZ GRÁFICA Y ANIMACIÓN
-# ==============================================================================
 
 def ejecutar_simulacion(config):
     xLim, yLim, zLim = config['limites']['x'], config['limites']['y'], config['limites']['z']
@@ -214,17 +195,24 @@ def ejecutar_simulacion(config):
     xP_f = np.random.normal(xF, 0.04, num_fuente)
     yP_f = np.random.normal(yF, 0.04, num_fuente)
     zP_f = np.random.normal(zF, 0.04, num_fuente)
+    
+    malos_f = en_obstaculo(xP_f, yP_f, zP_f)
+    while np.any(malos_f):
+        xP_f[malos_f] = np.random.normal(xF, 0.04, np.sum(malos_f))
+        yP_f[malos_f] = np.random.normal(yF, 0.04, np.sum(malos_f))
+        zP_f[malos_f] = np.random.normal(zF, 0.04, np.sum(malos_f))
+        malos_f = en_obstaculo(xP_f, yP_f, zP_f)
 
     xP_r = np.random.uniform(0.2, xLim - 0.2, part_rand)
     yP_r = np.random.uniform(0.2, yLim - 0.2, part_rand)
     zP_r = np.random.uniform(0.2, zLim - 0.2, part_rand)
     
-    malos = en_obstaculo(xP_r, yP_r, zP_r)
-    while np.any(malos):
-        xP_r[malos] = np.random.uniform(0.2, xLim - 0.2, np.sum(malos))
-        yP_r[malos] = np.random.uniform(0.2, yLim - 0.2, np.sum(malos))
-        zP_r[malos] = np.random.uniform(0.2, zLim - 0.2, np.sum(malos))
-        malos = en_obstaculo(xP_r, yP_r, zP_r)
+    malos_r = en_obstaculo(xP_r, yP_r, zP_r)
+    while np.any(malos_r):
+        xP_r[malos_r] = np.random.uniform(0.2, xLim - 0.2, np.sum(malos_r))
+        yP_r[malos_r] = np.random.uniform(0.2, yLim - 0.2, np.sum(malos_r))
+        zP_r[malos_r] = np.random.uniform(0.2, zLim - 0.2, np.sum(malos_r))
+        malos_r = en_obstaculo(xP_r, yP_r, zP_r)
 
     xParticulas = np.concatenate([xP_f, xP_r])
     yParticulas = np.concatenate([yP_f, yP_r])
@@ -278,7 +266,7 @@ def ejecutar_simulacion(config):
             q = np.where(hacia_adentro, q - dot_product * ny, q)
             r = np.where(hacia_adentro, r - dot_product * nz, r)
 
-            push = 0.2 * np.exp(-15.0 * dist)
+            push = 1.0 * np.exp(-10.0 * dist)
             p += push * nx
             q += push * ny
             r += push * nz
@@ -305,6 +293,7 @@ def ejecutar_simulacion(config):
     for (xMin, xMax, yMin, yMax, zMin, zMax) in obstaculos:
         axis3d.plot([xMin, xMax, xMax, xMin, xMin], [yMin, yMin, yMax, yMax, yMin], [zMin]*5, color='black', alpha=0.8)
         axis3d.plot([xMin, xMax, xMax, xMin, xMin], [yMin, yMin, yMax, yMax, yMin], [zMax]*5, color='black', alpha=0.8)
+        
         for vx, vy in [(xMin, yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)]:
             axis3d.plot([vx, vx], [vy, vy], [zMin, zMax], color='black', alpha=0.8)
         axis2d.fill([xMin, xMax, xMax, xMin, xMin], [yMin, yMin, yMax, yMax, yMin], color='black', alpha=0.5)
@@ -342,9 +331,9 @@ def ejecutar_simulacion(config):
             z_new = np.clip(z_new, 0.1, zLim - 0.1)
 
             for (xMin, xMax, yMin, yMax, zMin, zMax) in obstaculos:
-                dentro = (x_new > xMin) & (x_new < xMax) & \
-                         (y_new > yMin) & (y_new < yMax) & \
-                         (z_new > zMin) & (z_new < zMax)
+                dentro = (x_new >= xMin) & (x_new <= xMax) & \
+                         (y_new >= yMin) & (y_new <= yMax) & \
+                         (z_new >= zMin) & (z_new <= zMax)
                 
                 if np.any(dentro):
                     dists = np.stack([
@@ -354,7 +343,7 @@ def ejecutar_simulacion(config):
                     ], axis=-1)
                     
                     min_face = np.argmin(dists, axis=-1)
-                    buffer = 0.02 
+                    buffer = 0.05 
                     
                     x_mod = x_new[dentro]
                     y_mod = y_new[dentro]
@@ -409,16 +398,12 @@ def ejecutar_simulacion(config):
     plt.tight_layout(rect=[0, 0, 1, 0.88]) 
     plt.show()
 
-# ==============================================================================
-# EJECUCIÓN PRINCIPAL (MENÚ)
-# ==============================================================================
-
 if __name__ == "__main__":
     
     config_1 = {
         'title': 'Cocina Industrial (Isla Central)',
         'limites': {'x': 6.0, 'y': 6.0, 'z': 4.5},
-        'fuente': (3.0, 3.0, 1.0),      
+        'fuente': (3.0, 3.0, 1.3), 
         'sumidero': (3.0, 3.0, 4.0),    
         'restricciones_sumidero': {'techo': True, 'paredes_x': True, 'paredes_y': True},
         'obstaculos': [(2.4, 3.6, 2.4, 3.6, 0.0, 1.2)], 
@@ -429,19 +414,6 @@ if __name__ == "__main__":
     }
 
     config_2 = {
-        'title': 'Taller de Carpintería (Corte de Madera)',
-        'limites': {'x': 6.0, 'y': 6.0, 'z': 3.5},
-        'fuente': (1.5, 4.0, 1.5),      
-        'sumidero': (0.5, 5.5, 0.5),    
-        'restricciones_sumidero': {'techo': False, 'paredes_x': True, 'paredes_y': False},
-        'obstaculos': [],
-        'pared': None,
-        'particulas': {'ligeras': 10, 'aire': 50, 'pesadas': 200, 'aleatorias': 80},
-        'fisica': {'flot_ligera': 0.1, 'flot_pesada': -0.45, 'fuerza_extractor': 5.5, 'v_max': 1.5, 'restricciones_sumidero': {'techo': False, 'paredes_x': True, 'paredes_y': False}},
-        'num_flechas': 18, 'dt': 0.04
-    }
-
-    config_3 = {
         'title': 'Área de Soldadura (Pared divisoria)',
         'limites': {'x': 6.0, 'y': 6.0, 'z': 5.0},
         'fuente': (1.0, 1.0, 1.0),      
@@ -454,36 +426,23 @@ if __name__ == "__main__":
         'num_flechas': 18, 'dt': 0.04
     }
 
-    config_4 = {
+    config_3 = {
         'title': 'Laboratorio Químico (Campana Extractora)',
         'limites': {'x': 4.0, 'y': 4.0, 'z': 3.0},
-        'fuente': (2.0, 1.0, 1.2),      
+        'fuente': (2.0, 1.0, 1.4), 
         'sumidero': (2.0, 1.0, 2.5),    
         'restricciones_sumidero': {'techo': False, 'paredes_x': False, 'paredes_y': True},
         'obstaculos': [(0.5, 3.5, 1.8, 2.2, 0.0, 1.3)], 
         'pared': {'centro_x': 2.0, 'centro_y': 2.0, 'ancho_x': 1.5, 'largo_y': 0.1}, 
         'particulas': {'ligeras': 250, 'aire': 20, 'pesadas': 0, 'aleatorias': 100},
-        'fisica': {'flot_ligera': 0.40, 'flot_pesada': 0.0, 'fuerza_extractor': 4.5, 'v_max': 0.2, 'restricciones_sumidero': {'techo': False, 'paredes_x': False, 'paredes_y': True}},
+        'fisica': {'flot_ligera': 0.40, 'flot_pesada': 0.0, 'fuerza_extractor': 4, 'v_max': 0.2, 'restricciones_sumidero': {'techo': False, 'paredes_x': False, 'paredes_y': True}},
         'num_flechas': 15, 'dt': 0.04
     }
 
-    config_5 = {
-        'title': 'Cabina de Pintura Automotriz',
-        'limites': {'x': 8.0, 'y': 5.0, 'z': 4.0},
-        'fuente': (4.0, 2.5, 1.5),      
-        'sumidero': (7.5, 2.5, 1.0),    
-        'restricciones_sumidero': {'techo': False, 'paredes_x': True, 'paredes_y': False},
-        'obstaculos': [],
-        'pared': None,
-        'particulas': {'ligeras': 100, 'aire': 100, 'pesadas': 100, 'aleatorias': 150},
-        'fisica': {'flot_ligera': 0.15, 'flot_pesada': -0.15, 'fuerza_extractor': 7.0, 'v_max': 2.0, 'restricciones_sumidero': {'techo': False, 'paredes_x': True, 'paredes_y': False}},
-        'num_flechas': 20, 'dt': 0.04
-    }
-
-    config_6 = {
+    config_4 = {
         'title': 'Fundición de Metales (Horno Central)',
         'limites': {'x': 10.0, 'y': 10.0, 'z': 8.0},
-        'fuente': (5.0, 5.0, 2.0),      
+        'fuente': (5.0, 5.0, 2.2), 
         'sumidero': (5.0, 5.0, 7.0),    
         'restricciones_sumidero': {'techo': True, 'paredes_x': False, 'paredes_y': False},
         'obstaculos': [(3.5, 6.5, 3.5, 6.5, 0.0, 2.0)], 
@@ -493,47 +452,45 @@ if __name__ == "__main__":
         'num_flechas': 24, 'dt': 0.04
     }
 
-    config_7 = {
-        'title': 'Sala de Servidores (Data center)',
-        'limites': {'x': 6.0, 'y': 8.0, 'z': 3.5},
-        'fuente': (3.0, 0.5, 0.5), 
-        'sumidero': (3.0, 7.5, 3.0),    
-        'restricciones_sumidero': {'techo': False, 'paredes_x': True, 'paredes_y': True},
-        'obstaculos': [(1.0, 5.0, 2.0, 6.0, 0.0, 3.0)], 
-        'pared': {'centro_x': 4.0, 'centro_y': 4.0, 'ancho_x': 0.8, 'largo_y': 3.0},
-        'particulas': {'ligeras': 0, 'aire': 300, 'pesadas': 0, 'aleatorias': 100},
-        'fisica': {'flot_ligera': 0.0, 'flot_pesada': 0.0, 'fuerza_extractor': 6.0, 'v_max': 3.0, 'restricciones_sumidero': {'techo': False, 'paredes_x': True, 'paredes_y': True}},
-        'num_flechas': 20, 'dt': 0.04
-    }
-
-    config_8 = {
-        'title': 'Corte de Mármol (Polvo de Sílice)',
+    config_cuarto_vacio = {
+        'title': 'Cuarto Vacio',
         'limites': {'x': 5.0, 'y': 5.0, 'z': 3.5},
-        'fuente': (2.5, 2.5, 1.0),      
-        'sumidero': (0.5, 2.5, 0.5),    
+        'fuente': (0, 5, 1.5),      
+        'sumidero': (5, 0, 1.5),    
         'restricciones_sumidero': {'techo': True, 'paredes_x': True, 'paredes_y': True},
         'obstaculos': [],
         'pared': None,
-        'particulas': {'ligeras': 0, 'aire': 40, 'pesadas': 250, 'aleatorias': 150},
-        'fisica': {'flot_ligera': 0.0, 'flot_pesada': -0.70, 'fuerza_extractor': 6.5, 'v_max': 1.0, 'restricciones_sumidero': {'techo': True, 'paredes_x': True, 'paredes_y': True}},
+        'particulas': {'ligeras': 30, 'aire': 160, 'pesadas': 30, 'aleatorias': 20},
+        'fisica': {'flot_ligera': 0.0, 'flot_pesada': -0.20, 'fuerza_extractor': 7.5, 'v_max': 1.0, 'restricciones_sumidero': {'techo': True, 'paredes_x': True, 'paredes_y': True}},
+        'num_flechas': 18, 'dt': 0.04
+    }
+
+    config_cuarto_con_muro_central = {
+        'title': 'Cuarto con muro en el centro',
+        'limites': {'x': 5.0, 'y': 5.0, 'z': 3.5},
+        'fuente': (0, 5, 1.5),      
+        'sumidero': (5, 0, 1.5),    
+        'restricciones_sumidero': {'techo': True, 'paredes_x': True, 'paredes_y': True},
+        'obstaculos': [(2.0, 3.0, 2.0, 3.0, 0.0, 3.5)], 
+        'pared': {'centro_x': 4.0, 'centro_y': 4.0, 'ancho_x': 0.8, 'largo_y': 3.0},
+        'particulas': {'ligeras': 30, 'aire': 160, 'pesadas': 30, 'aleatorias': 20},
+        'fisica': {'flot_ligera': 0.0, 'flot_pesada': -0.20, 'fuerza_extractor': 7.5, 'v_max': 1.0, 'restricciones_sumidero': {'techo': True, 'paredes_x': True, 'paredes_y': True}},
         'num_flechas': 18, 'dt': 0.04
     }
 
     print("Seleccione el escenario industrial que desea optimizar:")
     print("1. Cocina Industrial (Isla Central)")
-    print("2. Taller de Carpintería (Corte de Madera)")
-    print("3. Área de Soldadura (Pared divisoria)")
-    print("4. Laboratorio Químico (Campana Extractora)")
-    print("5. Cabina de Pintura Automotriz")
-    print("6. Fundición de Metales (Techo alto)")
-    print("7. Sala de Servidores (Data center)")
-    print("8. Corte de Mármol (Polvo de Sílice mixtas)")
+    print("2. Área de Soldadura (Pared divisoria)")
+    print("3. Laboratorio Químico")
+    print("4. Fundición de Metales (Horno Central)")
+    print("5. Cuarto Vacio")
+    print("6. Cuarto con muro en el centro")
     
-    opcion = input("\nIngrese el número de opción (1-8): ")
+    opcion = input("\nIngrese el número de opción (1-6): ")
     
     escenarios = {
         "1": config_1, "2": config_2, "3": config_3, "4": config_4,
-        "5": config_5, "6": config_6, "7": config_7, "8": config_8
+        "5": config_cuarto_vacio, "6": config_cuarto_con_muro_central
     }
     
     config_seleccionada = escenarios.get(opcion, config_1)
@@ -546,6 +503,6 @@ if __name__ == "__main__":
         print(f"\nUbicando sumidero definitivo en {sumidero_optimo}...")
         config_seleccionada['sumidero'] = sumidero_optimo
         print("Abriendo interfaz gráfica de la simulación industrial...")
-        ejecutar_simulacion(config_seleccionada) # Ya no necesita 'campo.' porque están en el mismo archivo
+        ejecutar_simulacion(config_seleccionada) 
     else:
         print("Optimización guardada. Proceso industrial finalizado.")
